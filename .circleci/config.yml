@@ -45,7 +45,7 @@ workflows:
             - test_and_build_jar
           family: twillo-service-dev
           cluster-name: twillo-service-cluster-dev
-          container-image-name-updates: 'twillo-service-container-dev,tag=${CIRCLE_SHA1}'
+          container-image-name-updates: 'container=twillo-service-container-dev,tag=${CIRCLE_SHA1}'
   promote_build_to_stage:
     jobs:
       - tag_buit_image:
