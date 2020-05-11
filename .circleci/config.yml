@@ -1,0 +1,70 @@
+version: 2.1
+
+orbs:
+  aws-ecs: circleci/aws-ecs@1.1.0
+
+jobs:
+  test_and_build_jar:
+    working_directory: ~/twillo-service
+    docker:
+      - image: circleci/openjdk:8-jdk-stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - restore_cache:
+          key: twillo-service-{{ checksum "build.gradle" }}
+      - run: gradle dependencies:go-offline
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: twillo-service-{{ checksum "build.gradle" }}
+      - run: ./gradlew build
+      - run: echo "$DOCKER_PASSWORD"| docker login -u "$DOCKER_ID" --password-stdin
+      - run: docker build -t kshitijbahul/twillo-service:$CIRCLE_SHA1 .
+      - run: docker push kshitijbahul/twillo-service:$CIRCLE_SHA1
+  tag_buit_image:
+    docker:
+      - image: cimg/base:2020.01
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: echo "$DOCKER_PASSWORD"| docker login -u "$DOCKER_ID" --password-stdin
+      - run: docker pull kshitijbahul/twillo-service:$CIRCLE_SHA1
+      - run: docker image tag kshitijbahul/twillo-service:$CIRCLE_SHA1 kshitijbahul/twillo-service:$CIRCLE_TAG
+      - run: docker push kshitijbahul/twillo-service:$CIRCLE_TAG
+
+workflows:
+  version: 2.1
+  build_and_push:
+    jobs:
+      - test_and_build_jar
+      - aws-ecs/deploy-service-update:
+          requires:
+            - test_and_build_jar
+          family: twillo-service-dev
+          cluster-name: twillo-service-cluster-dev
+          container-image-name-updates: 'twillo-service-container-dev,tag=${CIRCLE_SHA1}'
+  promote_build_to_stage:
+    jobs:
+      - tag_buit_image:
+          filters:
+            tags:
+              only: /^stage.*/
+            branches:
+              ignore: /.*/
+      - aws-ecs/deploy-service-update:
+          filters:
+            tags:
+              only: /^stage.*/
+            branches:
+              ignore: /.*/
+          requires:
+            - tag_buit_image
+          family: twillo-service-staging
+          cluster-name: twillo-service-cluster-staging
+          container-image-name-updates: 'container=twillo-service-container,tag=${CIRCLE_TAG}'
+
+
+
+
+
