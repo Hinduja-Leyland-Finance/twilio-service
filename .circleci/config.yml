@@ -37,8 +37,10 @@ workflows:
   version: 2.1
   build_and_push:
     jobs:
-      - test_and_build_jar
+      - test_and_build_jar:
+          context: aws-context
       - aws-ecs/deploy-service-update:
+          context: aws-context
           requires:
             - test_and_build_jar
           family: twillo-service-dev
@@ -47,12 +49,14 @@ workflows:
   promote_build_to_stage:
     jobs:
       - tag_buit_image:
+          context: aws-context
           filters:
             tags:
               only: /^stage.*/
             branches:
               ignore: /.*/
       - aws-ecs/deploy-service-update:
+          context: aws-context
           filters:
             tags:
               only: /^stage.*/
