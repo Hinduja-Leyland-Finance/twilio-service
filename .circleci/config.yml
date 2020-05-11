@@ -13,12 +13,12 @@ jobs:
       - setup_remote_docker
       - restore_cache:
           key: twillo-service-{{ checksum "build.gradle" }}
-      - run: gradle dependencies:go-offline
+      - run: ./gradlew test
       - save_cache:
           paths:
             - ~/.gradle
           key: twillo-service-{{ checksum "build.gradle" }}
-      - run: ./gradlew build
+      - run: ./gradlew assemble
       - run: echo "$DOCKER_PASSWORD"| docker login -u "$DOCKER_ID" --password-stdin
       - run: docker build -t kshitijbahul/twillo-service:$CIRCLE_SHA1 .
       - run: docker push kshitijbahul/twillo-service:$CIRCLE_SHA1
