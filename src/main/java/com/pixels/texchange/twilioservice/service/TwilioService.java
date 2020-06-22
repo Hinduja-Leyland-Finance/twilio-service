@@ -39,8 +39,13 @@ public class TwilioService {
                     new PhoneNumber(twilioConfig.getTrialno()),
                     jsonObject.optString("message")  );
 
-        return Flux.just(message.create());
-
+        Flux resultFlux;
+        try {
+            resultFlux = Flux.just(message.create());
+        }catch (Exception excp){
+            resultFlux= Flux.empty();
+        }
+       return resultFlux;
         }
 
     public Mono sendSmstoAll(String json) {
